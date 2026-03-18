@@ -1,0 +1,50 @@
+sudo apt-get update -y
+
+sudo apt-get install -y python3 python3-pip python3-venv wget
+
+python3 -m venv dwh-airflow
+
+source dwh-airflow/bin/activate
+
+pip install --upgrade pip
+
+nano requirements.txt
+
+pip install -r requirements.txt --force-reinstall
+
+# Initialize Airflow (Standard SQLite setup for local testing)
+# Note: For production, you'd point this to your Postgres instance
+# setup root folder Airflow to save all states.
+export AIRFLOW_HOME=~/airflow
+export AIRFLOW__CORE__DAGS_FOLDER=~/airflow/dags
+# create metadata db for airflow 
+airflow db init
+
+# Create a UI user
+airflow users create \
+    --username admin \
+    --firstname Thanh \
+    --lastname Le \
+    --role Admin \
+    --email admin@leetun.com
+
+# fill out password: admin123
+
+# (The -D flag runs them as "daemons" in the background so it don't close when dev exit the terminal.)
+airflow webserver -p 8080 -D
+airflow scheduler -D
+
+(airflow standalone # this initialize database, starts the scheduler and launches the web server in a single command)
+
+
+# step by step:
+venv → install airflow → init db → create user → start scheduler → start webserver → open UI: http://<VM-ip>:8080
+
+# Note:
+- Remember that we need to graint aceess for Service Acount (create roles as needed)
+- Setup firewall role for TCP:8080
+- Allow full access to all Cloud APIs
+
+dags_folder = /home/minhthanh2004kid/airflow/dags
+
+
