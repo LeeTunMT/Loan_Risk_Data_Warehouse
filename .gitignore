@@ -1,1 +1,18 @@
 Datasets/
+
+# ignore checkpoint, logs
+checkpoint/
+logs/
+.ipynb_checkpoints/
+# ignore pycache
+__pycache__/
+*.pyc
+# ignore env
+env/
+venv/
+# ignore .env file
+.env
+# ignore .idea folder
+.idea/
+# ignore .vscode folder
+.vscode/
