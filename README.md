@@ -42,4 +42,7 @@ This file contains descriptions for the columns in the various data files.
 ## Pipeline 
 
 ## Result
+This implementation compared the performance between spark engine and traditional processing data method (pandas)
+
+The result indicated time run duration of pandas too high and when i used pyspark instead, the time performance reduce from 1h20m to ...
 
