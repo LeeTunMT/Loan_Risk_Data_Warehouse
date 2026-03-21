@@ -17,7 +17,10 @@ def transform_application():
 
     # 1. Read Data
     df = pd.read_gbq(f"SELECT * FROM `{PROJECT_ID}.{DATASET_SILVER}.application`", project=PROJECT_ID)
-
+    df_app_target = pd.read_gbq(
+        f"SELECT * FROM `{PROJECT_ID}.{DATASET_SILVER}.application_target`", 
+        project=PROJECT_ID
+    )
     # ---------------------------------------------------------
     # 2. Dimensions Creation
     # ---------------------------------------------------------
@@ -138,7 +141,8 @@ def transform_application():
         'dim_contract': dim_contract,
         'dim_documents': dim_documents,
         'dim_contact': dim_contact,
-        'fact_application': fact_application
+        'fact_application': fact_application,
+        'dim_app_target': df_app_target
 
     }
     
@@ -159,17 +163,10 @@ def transform_application():
 
 def transform_bureau():
 
-    # ---------------------------------------------------------
-    # 1. Read Data from Silver Stage
-    # ---------------------------------------------------------
     df_bureau = pd.read_gbq(f"SELECT * FROM `{PROJECT_ID}.{DATASET_SILVER}.bureau`", project=PROJECT_ID)
     
     # Load the bureau balance table which is already prepared as a dimension
     df_bb = pd.read_gbq(f"SELECT * FROM `{PROJECT_ID}.{DATASET_SILVER}.bureau_balance`", project=PROJECT_ID)
-
-    # ---------------------------------------------------------
-    # 2. Dimensions Creation
-    # ---------------------------------------------------------
 
     # dim_credit_status: Captures descriptive attributes about the type and status of the credit
     status_cols = ['credit_active', 'credit_currency', 'credit_type']
@@ -235,10 +232,6 @@ def transform_bureau():
         [col for col in dim_bureau_behavior.columns if col not in ['bb_id', 'sk_id_bureau']]
     ]
 
-    # ---------------------------------------------------------
-    # 3. Merging Surrogate Keys back to base dataframe for the Fact Table
-    # ---------------------------------------------------------
-    
     # Merge the generated IDs back into the main bureau dataframe using the original columns
     df_bureau = df_bureau.merge(dim_credit_status, on=status_cols, how='left')
     df_bureau = df_bureau.merge(dim_bureau_date, on=date_cols, how='left')
@@ -267,10 +260,6 @@ def transform_bureau():
     ]
     fact_bureau = df_bureau[fact_cols]
 
-    # ---------------------------------------------------------
-    # 5. Load Data to BigQuery Gold Stage
-    # ---------------------------------------------------------
-    
     tables_to_load = {
         'dim_credit_status': dim_credit_status,
         'dim_bureau_date': dim_bureau_date,
@@ -579,3 +568,6 @@ def transform_pos_cash_balance():
         print(f"Successfully loaded {table_name}.")
 
     return "POS Cash Balance transformation and loading to Gold stage completed successfully."
+
+def aggregation_table():
+    return 
