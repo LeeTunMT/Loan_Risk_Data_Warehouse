@@ -68,6 +68,7 @@ def transform_application():
     df = data_quality_check(df, 'application', subset_dedup=['sk_id_curr'])
 
     # Float reduction
+    df['cnt_fam_members'] = df['cnt_fam_members'].astype('Int64')
     float_cols = df.select_dtypes(include=['float64']).columns
     df[float_cols] = df[float_cols].round(4)
 
