@@ -569,5 +569,7 @@ def transform_pos_cash_balance():
 
     return "POS Cash Balance transformation and loading to Gold stage completed successfully."
 
+
+# aggregation table for analysis!
 def aggregation_table():
     return 
