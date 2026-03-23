@@ -1,6 +1,17 @@
 sudo apt-get update -y
 
-sudo apt-get install -y python3 python3-pip python3-venv wget
+sudo apt-get install -y python3 python3-pip python3-venv wget postgresql postgresql-contrib
+
+sudo -u postgres psql
+
+"""
+CREATE DATABASE airflow_db;
+CREATE USER airflow_user WITH PASSWORD 'airflow_pass';
+GRANT ALL PRIVILEGES ON DATABASE airflow_db TO airflow_user;
+-- Chuyển quyền owner (Cần thiết cho PostgreSQL phiên bản mới)
+ALTER DATABASE airflow_db OWNER TO airflow_user;
+\q
+""" 
 
 python3 -m venv dwh-airflow
 
@@ -12,11 +23,17 @@ nano requirements.txt
 
 pip install -r requirements.txt --force-reinstall
 
-# Initialize Airflow (Standard SQLite setup for local testing)
-# Note: For production, you'd point this to your Postgres instance
-# setup root folder Airflow to save all states.
 export AIRFLOW_HOME=~/airflow
-export AIRFLOW__CORE__DAGS_FOLDER=~/airflow/dags
+export AIRFLOW__CORE__DAGS_FOLDER=/home/minhthanh2004kid/airflow/dags
+export AIRFLOW__CORE__EXECUTOR=LocalExecutor
+
+# syntax: postgresql+psycopg2://<user>:<password>@localhost/<database_name>
+
+export AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow_user:airflow_pass@localhost/airflow_db
+
+# (Tùy chọn) Ẩn các cảnh báo mặc định của Airflow cho giao diện gọn gàng
+export AIRFLOW__CORE__LOAD_EXAMPLES=False
+
 # create metadata db for airflow 
 airflow db init
 
@@ -36,7 +53,6 @@ airflow scheduler -D
 
 (airflow standalone # this initialize database, starts the scheduler and launches the web server in a single command)
 
-
 # step by step:
 venv → install airflow → init db → create user → start scheduler → start webserver → open UI: http://<VM-ip>:8080
 
@@ -44,6 +60,11 @@ venv → install airflow → init db → create user → start scheduler → sta
 - Remember that we need to graint aceess for Service Acount (create roles as needed)
 - Setup firewall role for TCP:8080
 - Allow full access to all Cloud APIs
+
+# To run parallel: 
+# executor dont use SequentialExecutor in production 
+# Do not use SQLite as metadata DB in production -> use Postgres or MySQL instead
+
 
 dags_folder = /home/minhthanh2004kid/airflow/dags
 
