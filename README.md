@@ -1,41 +1,23 @@
 # LOAN RISK DATA WAREHOUSE
 
-## Introduction
-About Data:
-application_{train|test}.csv
+## Dataset Overview: Home Credit
 
-This is the main table, broken into two files for Train (with TARGET) and Test (without TARGET).
-Static data for all applications. One row represents one loan in our data sample.
-bureau.csv
+<p align="center">
+  <img src="image/home_credit.png" alt="Home Credit Data Schema" width="800">
+</p>
 
-All client's previous credits provided by other financial institutions that were reported to Credit Bureau (for clients who have a loan in our sample).
-For every loan in our sample, there are as many rows as number of credits the client had in Credit Bureau before the application date.
-bureau_balance.csv
+This project utilizes the Home Credit dataset to build the data warehouse pipeline. The dataset consists of multiple relational tables containing historical loan application and financial history data. 
 
-Monthly balances of previous credits in Credit Bureau.
-This table has one row for each month of history of every previous credit reported to Credit Bureau – i.e the table has (#loans in sample * # of relative previous credits * # of months where we have some history observable for the previous credits) rows.
-POS_CASH_balance.csv
+Below is a detailed breakdown of the source data files:
 
-Monthly balance snapshots of previous POS (point of sales) and cash loans that the applicant had with Home Credit.
-This table has one row for each month of history of every previous credit in Home Credit (consumer credit and cash loans) related to loans in our sample – i.e. the table has (#loans in sample * # of relative previous credits * # of months in which we have some history observable for the previous credits) rows.
-credit_card_balance.csv
-
-Monthly balance snapshots of previous credit cards that the applicant has with Home Credit.
-This table has one row for each month of history of every previous credit in Home Credit (consumer credit and cash loans) related to loans in our sample – i.e. the table has (#loans in sample * # of relative previous credit cards * # of months where we have some history observable for the previous credit card) rows.
-previous_application.csv
-
-All previous applications for Home Credit loans of clients who have loans in our sample.
-There is one row for each previous application related to loans in our data sample.
-installments_payments.csv
-
-Repayment history for the previously disbursed credits in Home Credit related to the loans in our sample.
-There is a) one row for every payment that was made plus b) one row each for missed payment.
-One row is equivalent to one payment of one installment OR one installment corresponding to one payment of one previous Home Credit credit related to loans in our sample.
-HomeCredit_columns_description.csv
-
-This file contains descriptions for the columns in the various data files.
-
-<img src = 'image/home_credit.png'>
+* **`application_{train|test}.csv`**: The primary main table containing static data for all applications. Each row represents a single loan in the data sample. It is split into Train (which includes the `TARGET` label) and Test (without the `TARGET` label) sets.
+* **`bureau.csv`**: Records of clients' previous credits provided by other financial institutions that were reported to the Credit Bureau. A client may have multiple rows corresponding to their number of previous credits.
+* **`bureau_balance.csv`**: Monthly balance logs of the previous credits detailed in `bureau.csv`. It contains one row for each month of historical data available for every previous credit.
+* **`POS_CASH_balance.csv`**: Monthly balance snapshots of previous POS (point of sales) and cash loans that the applicant held specifically with Home Credit. 
+* **`credit_card_balance.csv`**: Monthly balance snapshots of previous credit cards that the applicant held with Home Credit.
+* **`previous_application.csv`**: Records of all previous applications for Home Credit loans made by clients who have loans in our current sample. One row corresponds to one previous application.
+* **`installments_payments.csv`**: Repayment history for previously disbursed credits at Home Credit. It records both successful payments and missed payments (one row equates to one payment of one installment, or one missed installment).
+* **`HomeCredit_columns_description.csv`**: The data dictionary containing detailed definitions and descriptions for all columns across the various data files mentioned above.
 
 ## Architecture
 
@@ -60,8 +42,35 @@ The data pipeline is built natively on Google Cloud Platform (GCP) and follows a
 
 4. **BI & Visualization:**
    * **Looker Studio:** Connects directly to the **DWH Gold** layer to generate interactive dashboards and deliver actionable business insights to end-users.
-   
-## Data Warehouse Pipeline Setup on GCP (Airflow + PySpark)
+
+## Data Processing Pipeline (Medallion Architecture)
+
+The data transformation logic is handled entirely by PySpark and orchestrated by Airflow. The pipeline follows a multi-hop Medallion structure (Bronze ➡️ Silver ➡️ Gold) within BigQuery.
+
+### 1. Ingestion Layer (Bronze)
+**Script:** `pipeline_using_pyspark/el_to_bronze.py`
+* **Objective:** Extract and Load (EL).
+* **Process:** Extracts raw CSV files from Google Cloud Storage (GCS) and loads them directly into the BigQuery `bronze_stage` without any structural modifications. 
+* **Tool:** Google BigQuery Python Client (`LoadJobConfig`).
+
+### 2. Cleansing Layer (Silver)
+**Script:** `pipeline_using_pyspark/transform_to_silver.py`
+* **Objective:** Data Quality, Filtering, and Standardization.
+* **Process:**
+  * **Data Quality Checks:** Identifies missing values and drops exact duplicates.
+  * **Outlier Handling:** Replaces anomalous historical values (e.g., `DAYS` columns > 36500) with `NULL`.
+  * **Data Formatting:** Converts relative day counts (e.g., `days_birth`, `days_employed`) into readable `yyyy-MM-dd` date formats using an anchor date.
+  * **Initial Feature Engineering:** Calculates base financial metrics such as `credit_to_income_ratio` and `annuity_to_credit_ratio`.
+
+### 3. Curated Layer (Gold)
+**Script:** `pipeline_using_pyspark/transform_to_gold.py`
+* **Objective:** Dimensional Modeling and Aggregation for BI.
+* **Process:**
+  * **Dimensional Modeling:** Transforms wide, flat Silver tables into a structured Data Warehouse schema. It generates Surrogate Keys (using PySpark's `monotonically_increasing_id()` and Window functions) to split data into centralized **Fact tables** (e.g., `fact_application`, `fact_bureau`) and multiple **Dimension tables** (e.g., `dim_customer_info`, `dim_contract`).
+  * **Behavioral Aggregations:** Aggregates historical credit behaviors, calculating features like severe delinquency ratios, Days Past Due (DPD) buckets, and installment payment delays.
+  * **Data Mart Creation:** Prepares the final optimized tables ready for Looker Studio visualization.
+
+## Setup on GCP (Airflow + PySpark)
 
 This guide provides step-by-step instructions for configuring an Apache Airflow environment with PySpark capabilities on a Google Cloud Platform (GCP) Virtual Machine.
 
