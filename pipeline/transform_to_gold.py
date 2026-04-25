@@ -571,5 +571,11 @@ def transform_pos_cash_balance():
 
 
 # aggregation table for analysis!
-def aggregation_table():
+
+# Behavioral History at Bureau Creduit
+def agg_bureau_summary():
+    return 
+
+# Behavioral History summary at Home Credit
+def agg_previous_app_summary():
     return 
