@@ -2,6 +2,15 @@ sudo apt-get update -y
 
 sudo apt-get install -y python3 python3-pip python3-venv wget postgresql postgresql-contrib
 
+# just for JAVA (JVM)
+sudo apt-get install -y openjdk-17-jdk 
+# Ghi cấu hình vào .bashrc
+echo "export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64" >> ~/.bashrc
+echo "export PATH=\$PATH:\$JAVA_HOME/bin" >> ~/.bashrc
+
+# Kích hoạt ngay lập tức
+source ~/.bashrc
+
 sudo -u postgres psql
 
 """
@@ -48,13 +57,16 @@ airflow users create \
 # fill out password: admin123
 
 # (The -D flag runs them as "daemons" in the background so it don't close when dev exit the terminal.)
-airflow webserver -p 8080 -D
 airflow scheduler -D
+airflow webserver -p 8080 -D
 
 (airflow standalone # this initialize database, starts the scheduler and launches the web server in a single command)
 
 # step by step:
 venv → install airflow → init db → create user → start scheduler → start webserver → open UI: http://<VM-ip>:8080
+# download file jar for spark connectors
+wget https://repo1.maven.org/maven2/com/google/cloud/spark/spark-bigquery-with-dependencies_2.12/0.36.1/spark-bigquery-with-dependencies_2.12-0.36.1.jar -O /home/minhthanh2004kid/airflow/dags/pipeline_using_pyspark/spark-bigquery.jar
+wget https://storage.googleapis.com/hadoop-lib/gcs/gcs-connector-hadoop3-latest.jar -O /home/minhthanh2004kid/airflow/dags/pipeline_using_pyspark/gcs-connector.jar
 
 # Note:
 - Remember that we need to graint aceess for Service Acount (create roles as needed)
@@ -65,7 +77,9 @@ venv → install airflow → init db → create user → start scheduler → sta
 # executor dont use SequentialExecutor in production 
 # Do not use SQLite as metadata DB in production -> use Postgres or MySQL instead
 
+# to kill old airflow: 
+# pkill -f airflow 
+# kill -9 <PID>
 
 dags_folder = /home/minhthanh2004kid/airflow/dags
-
 
